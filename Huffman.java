@@ -1,14 +1,11 @@
-import java.util.PriorityQueue;
-import java.util.HashMap;
-import java.util.Map;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.util.*;
+import java.io.*;
+
 
 public class Huffman {
     public static void main(String[] args) {
         String fileDir = System.getProperty("user.dir");
-        String filePath = fileDir + "/test1.html";
+        String filePath = fileDir + "/Desktop/Bedre/CompriZip/test1.html";
 
         StringBuilder text = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
