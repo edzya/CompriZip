@@ -288,6 +288,25 @@ public class Main {
         encoded.append(currentChar).append(count);
         return encoded.toString();
     }
+    public static String huffmanDecompress(String compressedData, HuffmanNode root) {
+        StringBuilder decompressed = new StringBuilder();
+        HuffmanNode current = root;
+
+        for (char bit : compressedData.toCharArray()) {
+            if (bit == '0') {
+                current = current.left;
+            } else {
+                current = current.right;
+            }
+
+            if (current.left == null && current.right == null) {
+                decompressed.append(current.character);
+                current = root; // Reset to the root for the next character
+            }
+        }
+
+        return decompressed.toString();
+    }
 
     // LZ77 Decompression
     public static byte[] lz77Decompression(byte[] data) throws IOException {
