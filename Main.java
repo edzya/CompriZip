@@ -307,18 +307,42 @@ public class Main {
 
         return decompressed.toString();
     }
+    public static String decompress(String compressedData, HuffmanNode root) {
+        StringBuilder decompressed = new StringBuilder();
+        HuffmanNode current = root;
+    
+        for (char bit : compressedData.toCharArray()) {
+            if (current.left == null && current.right == null) {
+                decompressed.append(current.character);
+                current = root; // Reset to the root for the next character
+            }
+    
+            if (bit == '0') {
+                current = current.left;
+            } else {
+                current = current.right;
+            }
+        }
+    
+        // Handle the case where the last character is not yet appended
+        if (current.left == null && current.right == null) {
+            decompressed.append(current.character);
+        }
+    
+        return decompressed.toString();
+    }
 
     // LZ77 Decompression
-    public static byte[] lz77Decompression(byte[] data) throws IOException {
+    private static byte[] lz77Decompression(byte[] data) throws IOException {
         List<Byte> output = new ArrayList<>();
         byte[] window = new byte[WINDOW_SIZE];
         int windowPointer = 0;
         boolean running = true;
-
+    
         try (DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(data))) {
             while (running) {
                 byte flag = inputStream.readByte();
-
+    
                 for (int i = 0; i < 8; i++) {
                     if ((flag & (1 << i)) == 0) {
                         // Reference to previous occurrence in the window
@@ -326,14 +350,15 @@ public class Main {
                             running = false;
                             break;
                         }
-
+    
                         int byte1 = inputStream.readUnsignedByte();
                         int byte2 = inputStream.readUnsignedByte();
                         int offset = (byte1 << 4) | (byte2 >> 4);
                         int length = (byte2 & 0x0F) + 3;
-
+    
                         for (int j = 0; j < length; j++) {
-                            byte value = window[(windowPointer - offset + WINDOW_SIZE) % WINDOW_SIZE];
+                            int index = (windowPointer - offset + WINDOW_SIZE) % WINDOW_SIZE;
+                            byte value = window[index < 0 ? index + WINDOW_SIZE : index];
                             output.add(value);
                             window[windowPointer] = value;
                             windowPointer = (windowPointer + 1) % WINDOW_SIZE;
@@ -344,7 +369,7 @@ public class Main {
                             running = false;
                             break;
                         }
-
+    
                         byte literal = inputStream.readByte();
                         output.add(literal);
                         window[windowPointer] = literal;
@@ -353,7 +378,7 @@ public class Main {
                 }
             }
         }
-
+    
         // Convert the List<Byte> to byte[]
         byte[] outputArray = new byte[output.size()];
         for (int i = 0; i < outputArray.length; i++) {
@@ -361,4 +386,5 @@ public class Main {
         }
         return outputArray;
     }
+    
 }
