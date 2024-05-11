@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+
 public class Main {
 
     // LZ77 Constants
@@ -100,8 +101,18 @@ public class Main {
 
         try {
             String compressedData = new String(Files.readAllBytes(Paths.get(archiveName)));
-            String decompressedData = decompress(compressedData);
-            Files.write(Paths.get(fileName), decompressedData.getBytes());
+            String decompressedData = "Status: "+decompress(compressedData);
+            System.out.println(decompressedData);
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+                // Write the string content to the file
+                writer.write(decompressedData);
+    
+                System.out.println("Content has been written to the file successfully.");
+            } catch (IOException e) {
+                System.err.println("An error occurred while writing to the file: " + e.getMessage());
+                e.printStackTrace();
+            }
+            //Files.write(Paths.get(fileName), decompressedData.getBytes());
             System.out.println("Decompression successful.");
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
@@ -157,10 +168,10 @@ public class Main {
     // Decompress using LZ77
     public static String decompress(String input) {
         byte[] compData = input.getBytes();
-        byte[] decData;
+        String decData;
         try {
-            decData = lz77Decompression(compData);
-            return new String(decData);
+            decData = new String(lz77Decompression(compData));
+            return decData;
         } catch (IOException e) {
             e.printStackTrace();
             return "";
