@@ -39,12 +39,39 @@ public class Main {
         }
     }
 
+    // Structure for tree nodes
+    static class Node {
+        char character;
+        int freq;
+        Node left, right;
+
+        // Constructor to initialize a new node
+        Node(char character, int freq) {
+            this.character = character;
+            this.freq = freq;
+            this.left = null;
+            this.right = null;
+        }
+    }
+
+    // Structure for min heap
+    static class MinHeap {
+        int size;
+        Node[] array;
+
+        // Constructor to initialize a new min heap
+        MinHeap(int size) {
+            this.size = size;
+            this.array = new Node[size];
+        }
+    }
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         String command;
 
         do {
-            System.out.println("Ievadiet komandu (comp, decomp, size, equal, about, exit): ");
+            System.out.println("Enter command (comp, decomp, size, equal, about, exit): ");
             command = scanner.nextLine().trim();
 
             switch (command) {
@@ -64,10 +91,10 @@ public class Main {
                     aboutCommand();
                     break;
                 case "exit":
-                    System.out.println("Programma tiek beigta.");
+                    System.out.println("Exiting program.");
                     break;
                 default:
-                    System.out.println("Nepareiza komanda. Lūdzu, mēģiniet vēlreiz.");
+                    System.out.println("Invalid command. Please try again.");
                     break;
             }
         } while (!command.equals("exit"));
@@ -82,14 +109,15 @@ public class Main {
         String archiveName = scanner.nextLine().trim();
 
         try {
-            String input = new String(Files.readAllBytes(Paths.get(sourceFileName)));
-            String compressedData = compress(input);
-            Files.write(Paths.get(archiveName), compressedData.getBytes());
+            byte[] inputBytes = Files.readAllBytes(Paths.get(sourceFileName));
+            byte[] compressedData = compress(new String(inputBytes));
+            Files.write(Paths.get(archiveName), compressedData);
             System.out.println("Compression successful.");
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
+
 
     private static void decompCommand(Scanner scanner) {
         System.out.println("Enter archive name:");
@@ -139,28 +167,43 @@ public class Main {
     }
 
     private static void aboutCommand() {
-        System.out.println("Informācija par programmas izstrādātājiem:");
-        System.out.println("ByteBenders : 1.Grupa");
+        System.out.println("Information about the developers:");
+        System.out.println("ByteBenders : Group 1");
         System.out.println("Ronalds Gackis - 231CDB005");
         System.out.println("Edgars Zoltners - 113RIC073");
         System.out.println("Kaspars Skrinda - 231CDB002");
     }
 
-    // Compress using LZ77 followed by Huffman coding and RLE
-    public static String compress(String input) {
-        List<LZ77Token> lz77Tokens = lz77Compress(input);
-        String encodedLZ77 = encodeLZ77Tokens(lz77Tokens);
-        String huffmanCompressed = huffmanCompress(encodedLZ77);
-        return runLengthEncode(huffmanCompressed);
+    // Compress using LZ77 followed by Huffman coding
+    public static byte[] compress(String input) {
+        try {
+            List<LZ77Token> lz77Tokens = lz77Compress(input);
+            byte[] encodedLZ77 = encodeLZ77Tokens(lz77Tokens);
+            String huffmanCompressed = huffmanCompress(encodedLZ77);
+            return toByteArray(huffmanCompressed);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    private static String huffmanCompress(byte[] encodedLZ77) {
+        Map<Character, Integer> frequency = getFrequency(new String(encodedLZ77));
+        HuffmanNode root = buildTree(frequency);
+        Map<Character, String> codes = new HashMap<>();
+        generateCodes(root, "", codes);
+        StringBuilder encoded = new StringBuilder();
+        for (byte b : encodedLZ77) {
+            encoded.append(codes.get((char) b));
+        }
+        return encoded.toString();
     }
 
     // Decompress using LZ77
     public static String decompress(String input) {
         byte[] compData = input.getBytes();
-        byte[] decData;
         try {
-            decData = lz77Decompression(compData);
-            return new String(decData);
+            return new String(lz77Decompression(compData));
         } catch (IOException e) {
             e.printStackTrace();
             return "";
@@ -211,25 +254,15 @@ public class Main {
     }
 
     // Encode LZ77 Tokens
-    private static String encodeLZ77Tokens(List<LZ77Token> tokens) {
-        StringBuilder encoded = new StringBuilder();
+    private static byte[] encodeLZ77Tokens(List<LZ77Token> tokens) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (LZ77Token token : tokens) {
-            encoded.append(token.offset).append(",").append(token.length).append(",").append(token.nextCharacter).append(";");
+            int packedToken = (token.offset << 12) | token.length;
+            outputStream.write((packedToken >> 8) & 0xFF);
+            outputStream.write(packedToken & 0xFF);
+            outputStream.write(token.nextCharacter);
         }
-        return encoded.toString();
-    }
-
-    // Huffman Compression
-    private static String huffmanCompress(String input) {
-        Map<Character, Integer> frequency = getFrequency(input);
-        HuffmanNode root = buildTree(frequency);
-        Map<Character, String> codes = new HashMap<>();
-        generateCodes(root, "", codes);
-        StringBuilder encoded = new StringBuilder();
-        for (char c : input.toCharArray()) {
-            encoded.append(codes.get(c));
-        }
-        return encoded.toString();
+        return outputStream.toByteArray();
     }
 
     private static Map<Character, Integer> getFrequency(String text) {
@@ -268,26 +301,27 @@ public class Main {
         }
     }
 
-    // Run-Length Encoding
-    private static String runLengthEncode(String input) {
-        StringBuilder encoded = new StringBuilder();
-        char currentChar = input.charAt(0);
-        int count = 1;
-
-        for (int i = 1; i < input.length(); i++) {
-            if (input.charAt(i) == currentChar) {
-                count++;
-            } else {
-                encoded.append(currentChar).append(count);
-                currentChar = input.charAt(i);
-                count = 1;
+    private static byte[] toByteArray(String input) {
+        StringBuilder binaryString = new StringBuilder(input.length() * 8); // Initial capacity
+        for (char c : input.toCharArray()) {
+            String binary = Integer.toBinaryString(c);
+            while (binary.length() < 8) {
+                binary = "0" + binary;
             }
+            binaryString.append(binary);
         }
 
-        // Append the last character sequence
-        encoded.append(currentChar).append(count);
-        return encoded.toString();
+        // Convert binary string to byte array
+        int length = binaryString.length();
+        byte[] byteArray = new byte[length / 8];
+        for (int i = 0; i < length; i += 8) {
+            String byteString = binaryString.substring(i, i + 8);
+            byteArray[i / 8] = (byte) Integer.parseInt(byteString, 2);
+        }
+
+        return byteArray;
     }
+
     public static String huffmanDecompress(String compressedData, HuffmanNode root) {
         StringBuilder decompressed = new StringBuilder();
         HuffmanNode current = root;
@@ -301,90 +335,85 @@ public class Main {
 
             if (current.left == null && current.right == null) {
                 decompressed.append(current.character);
-                current = root; // Reset to the root for the next character
+                current = root;
             }
         }
 
         return decompressed.toString();
     }
+
     public static String decompress(String compressedData, HuffmanNode root) {
         StringBuilder decompressed = new StringBuilder();
         HuffmanNode current = root;
-    
+
         for (char bit : compressedData.toCharArray()) {
             if (current.left == null && current.right == null) {
                 decompressed.append(current.character);
-                current = root; // Reset to the root for the next character
+                current = root; 
             }
-    
+
             if (bit == '0') {
                 current = current.left;
             } else {
                 current = current.right;
             }
         }
-    
-        // Handle the case where the last character is not yet appended
         if (current.left == null && current.right == null) {
             decompressed.append(current.character);
         }
-    
+
         return decompressed.toString();
     }
 
     // LZ77 Decompression
     private static byte[] lz77Decompression(byte[] data) throws IOException {
-        List<Byte> output = new ArrayList<>();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
         byte[] window = new byte[WINDOW_SIZE];
         int windowPointer = 0;
         boolean running = true;
-    
+
         try (DataInputStream inputStream = new DataInputStream(new ByteArrayInputStream(data))) {
             while (running) {
+                if (inputStream.available() < 1) {
+                    break;
+                }
+
                 byte flag = inputStream.readByte();
-    
+
                 for (int i = 0; i < 8; i++) {
                     if ((flag & (1 << i)) == 0) {
-                        // Reference to previous occurrence in the window
                         if (inputStream.available() < 2) {
                             running = false;
                             break;
                         }
-    
+
                         int byte1 = inputStream.readUnsignedByte();
                         int byte2 = inputStream.readUnsignedByte();
                         int offset = (byte1 << 4) | (byte2 >> 4);
                         int length = (byte2 & 0x0F) + 3;
-    
+
                         for (int j = 0; j < length; j++) {
                             int index = (windowPointer - offset + WINDOW_SIZE) % WINDOW_SIZE;
                             byte value = window[index < 0 ? index + WINDOW_SIZE : index];
-                            output.add(value);
+                            output.write(value);
                             window[windowPointer] = value;
                             windowPointer = (windowPointer + 1) % WINDOW_SIZE;
                         }
                     } else {
-                        // Literal byte
                         if (inputStream.available() < 1) {
                             running = false;
                             break;
                         }
-    
+
                         byte literal = inputStream.readByte();
-                        output.add(literal);
+                        output.write(literal);
                         window[windowPointer] = literal;
                         windowPointer = (windowPointer + 1) % WINDOW_SIZE;
                     }
                 }
             }
         }
-    
-        // Convert the List<Byte> to byte[]
-        byte[] outputArray = new byte[output.size()];
-        for (int i = 0; i < outputArray.length; i++) {
-            outputArray[i] = output.get(i);
-        }
-        return outputArray;
+
+        return output.toByteArray();
     }
-    
 }

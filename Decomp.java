@@ -1,35 +1,27 @@
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
-
 
 public class Decomp {
-private static final int WINDOW_SIZE = 4096;
+    private static final int WINDOW_SIZE = 4096;
 
-public static void main(String[] args) {
-    Scanner scanner = new Scanner(System.in);
-    System.out.print("Compressed data input: ");
-    String input = scanner.nextLine();
+    public static void main(String[] args) {
+        if (args.length != 2) {
+            System.err.println("Usage: java Decomp <input_file> <output_file>");
+            System.exit(1);
+        }
+        String input = args[0];
+        String output = args[1];
 
-    System.out.print("Decompressed data output: ");
-    String output = scanner.nextLine();
-
-    try {
-        // Read the compressed file into a byte array
-        byte[] compData = readFile2BA(new File(input));
-        // Decompress the data
-        byte[] decData = lz77Decompression(compData);
-
-        // Write the decompressed data to the output file
-        writeBA2File(decData, new File(output));
-
-        // Output the size of the decompressed file
-        System.out.println("Size: " + decData.length + " bytes.");
-    } catch (IOException e) {
-        e.printStackTrace();
+        try {
+            byte[] compData = readFile2BA(new File(input));
+            byte[] decData = lz77Decompression(compData);
+            writeBA2File(decData, new File(output));
+            System.out.println("Decompressed data written to " + output);
+        } catch (IOException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
     }
-}
 
 public static byte[] lz77Decompression(byte[] data) throws IOException {
     List<Byte> output = new ArrayList<>();
