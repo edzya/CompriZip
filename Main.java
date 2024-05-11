@@ -2,6 +2,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.zip.Deflater;
 
 public class Main {
 
@@ -110,14 +111,13 @@ public class Main {
 
         try {
             byte[] inputBytes = Files.readAllBytes(Paths.get(sourceFileName));
-            byte[] compressedData = compress(new String(inputBytes));
+            byte[] compressedData = compressWithDeflater(new String(inputBytes));
             Files.write(Paths.get(archiveName), compressedData);
             System.out.println("Compression successful.");
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
-
 
     private static void decompCommand(Scanner scanner) {
         System.out.println("Enter archive name:");
@@ -186,7 +186,7 @@ public class Main {
             return null;
         }
     }
-    
+
     private static String huffmanCompress(byte[] encodedLZ77) {
         Map<Character, Integer> frequency = getFrequency(new String(encodedLZ77));
         HuffmanNode root = buildTree(frequency);
@@ -322,49 +322,6 @@ public class Main {
         return byteArray;
     }
 
-    public static String huffmanDecompress(String compressedData, HuffmanNode root) {
-        StringBuilder decompressed = new StringBuilder();
-        HuffmanNode current = root;
-
-        for (char bit : compressedData.toCharArray()) {
-            if (bit == '0') {
-                current = current.left;
-            } else {
-                current = current.right;
-            }
-
-            if (current.left == null && current.right == null) {
-                decompressed.append(current.character);
-                current = root;
-            }
-        }
-
-        return decompressed.toString();
-    }
-
-    public static String decompress(String compressedData, HuffmanNode root) {
-        StringBuilder decompressed = new StringBuilder();
-        HuffmanNode current = root;
-
-        for (char bit : compressedData.toCharArray()) {
-            if (current.left == null && current.right == null) {
-                decompressed.append(current.character);
-                current = root; 
-            }
-
-            if (bit == '0') {
-                current = current.left;
-            } else {
-                current = current.right;
-            }
-        }
-        if (current.left == null && current.right == null) {
-            decompressed.append(current.character);
-        }
-
-        return decompressed.toString();
-    }
-
     // LZ77 Decompression
     private static byte[] lz77Decompression(byte[] data) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -415,5 +372,25 @@ public class Main {
         }
 
         return output.toByteArray();
+    }
+
+    // Compress using Deflater
+    private static byte[] compressWithDeflater(String input) {
+        try {
+            Deflater deflater = new Deflater();
+            deflater.setInput(input.getBytes("UTF-8"));
+            deflater.finish();
+            byte[] buffer = new byte[1024];
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            while (!deflater.finished()) {
+                int count = deflater.deflate(buffer);
+                outputStream.write(buffer, 0, count);
+            }
+            deflater.end();
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
