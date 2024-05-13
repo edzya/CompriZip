@@ -7,11 +7,11 @@ import java.util.zip.Inflater;
 
 public class Main {
 
-    // LZ77 Constants
+    // LZ77 Konstantes
     private static final int WINDOW_SIZE = 15;
     private static final int LOOK_AHEAD_BUFFER_SIZE = 7;
 
-    // Huffman Node
+    // Huffman nodes
     static class HuffmanNode implements Comparable<HuffmanNode> {
         int frequency;
         char character;
@@ -87,9 +87,9 @@ public class Main {
     
         try {
             byte[] inputBytes = Files.readAllBytes(Paths.get(sourceFileName));
-            byte[] compressedData = compressWithDeflater(new String(inputBytes)); // Using compressWithDeflater instead of compress
+            byte[] compressedData = compressWithDeflater(new String(inputBytes)); // compressWithDeflater 
             String compressedString = byteArrayToString(compressedData);
-            System.out.println("Compressed Data:\n" + compressedString); // Print compressed data as string
+            System.out.println("Compressed Data:\n" + compressedString); // String comprese
             Files.write(Paths.get(archiveName), compressedData);
             System.out.println("Compression successful.");
         } catch (IOException e) {
@@ -100,7 +100,7 @@ public class Main {
     private static String byteArrayToString(byte[] byteArray) {
         StringBuilder stringBuilder = new StringBuilder();
         for (byte b : byteArray) {
-            stringBuilder.append(String.format("%02X", b)); // Convert each byte to hexadecimal string
+            stringBuilder.append(String.format("%02X", b)); // string -> Hexadecimal
         }
         return stringBuilder.toString();
     }
@@ -160,7 +160,7 @@ public class Main {
         System.out.println("Kaspars Skrinda - 231CDB002");
     }
 
-    // Compress using LZ77 followed by Huffman coding
+    // Comprese LZ77 -> Huffman 
     public static byte[] compress(String input) {
         try {
             List<LZ77Token> lz77Tokens = lz77Compress(input);
@@ -172,7 +172,7 @@ public class Main {
             return null;
         }
     }
-
+    // Comprese Huffman -> compresētā failā
     private static String huffmanCompress(byte[] encodedLZ77) {
         Map<Character, Integer> frequency = getFrequency(new String(encodedLZ77));
         HuffmanNode root = buildTree(frequency);
@@ -204,22 +204,22 @@ public class Main {
     }
 
     private static byte[] decompress(byte[] compressedData) {
-        // Perform decompression based on the compression type
+        // Šis nepazūd lai nesalauztu failu
         if (isLZ77Compressed(compressedData)) {
             return lz77Decompress(compressedData);
         } else {
             return huffmanDecompress(compressedData);
         }
     }
-
+    // Parbaude
     private static boolean isLZ77Compressed(byte[] compressedData) {
         return compressedData.length % 3 == 0;
     }
-
+    // Compressed data -> Huffman
     private static byte[] huffmanDecompress(byte[] encodedData) {
         if (huffmanRoot == null || encodedData == null || encodedData.length == 0) {
             System.out.println("Error: Huffman tree is not constructed or encoded data is empty.");
-            return new byte[0]; // Return an empty byte array indicating failure
+            return new byte[0]; // Atgriezt datus ja saraksts ir tukš
         }
 
         StringBuilder binaryString = new StringBuilder();
@@ -229,15 +229,15 @@ public class Main {
         }
 
         List<Byte> result = new ArrayList<>();
-        HuffmanNode current = huffmanRoot; // Initialize current with the root of the Huffman tree
+        HuffmanNode current = huffmanRoot; // Huffman koks
         int index = 0;
 
         while (index < binaryString.length()) {
             char bit = binaryString.charAt(index);
             if (current.left == null && current.right == null) {
-                // Reached a leaf node, add the character to the result
+                // Meklēt lapu huffman kokā
                 result.add((byte) current.character);
-                current = huffmanRoot; // Reset current to the root
+                current = huffmanRoot; // Atgriezties uz sākumu
             } else {
                 if (bit == '0' && current.left != null) {
                     current = current.left;
@@ -245,20 +245,20 @@ public class Main {
                     current = current.right;
                 } else {
                     System.out.println("Error: Invalid Huffman code encountered.");
-                    return new byte[0]; // Return an empty byte array indicating failure
+                    return new byte[0]; // Error sistēma ja huffman koka neatrod kodu
                 }
                 index++;
             }
         }
 
-        // Convert the list of bytes to a byte array
+        // Biti -> Bitu saraksts
         byte[] output = new byte[result.size()];
         for (int i = 0; i < result.size(); i++) {
             output[i] = result.get(i);
         }
         return output;
     }                     
-
+    // Huffman -> LZ77
     private static byte[] lz77Decompress(byte[] compressedData) {
         List<LZ77Token> tokens = new ArrayList<>();
         for (int i = 0; i < compressedData.length; i += 3) {
@@ -395,7 +395,7 @@ public class Main {
 
         return byteArray;
     }
-
+    //Plāksteru salabošana
     private static byte[] compressWithDeflater(String input) {
         try {
             Deflater deflater = new Deflater();
